@@ -1,3 +1,141 @@
+# SQL Practice Notes – July 29
+
+## 1. Mistake with `NOT LIKE` and `%2==1` in SQL
+
+* You wrote:
+  ```sql
+  SELECT * FROM Cinema 
+  WHERE description NOT LIKE "boring" AND id%2==1;
+  ```
+
+* Issues:
+  - `==` is invalid in SQL. Use `=` instead.
+  - `NOT LIKE "boring"` only works for exact matches. For substrings, use `NOT LIKE '%boring%'`.
+
+* Corrected:
+  ```sql
+  SELECT * FROM Cinema 
+  WHERE description != 'boring' AND id % 2 = 1;
+  ```
+
+---
+
+## 2. Valid Email Pattern (LeetCode 1517)
+
+* Goal: Return users with valid emails.
+* Email must:
+  - Start with a letter
+  - Contain only letters, digits, `.`, `_`, `-`
+  - End with `@leetcode.com` (case-insensitive)
+
+* Correct regex:
+  ```sql
+  '^[a-zA-Z][a-zA-Z0-9._-]*@leetcode\.[cC][oO][mM]$'
+  ```
+
+* Final query:
+  ```sql
+  SELECT user_id, name, mail
+  FROM Users
+  WHERE mail REGEXP '^[a-zA-Z][a-zA-Z0-9._-]*@leetcode\.[cC][oO][mM]$';
+  ```
+
+---
+
+## 3. Count Unique Subjects per Teacher
+
+* Goal: Count how many **different subjects** each teacher teaches, ignoring departments.
+
+* Query:
+  ```sql
+  SELECT teacher_id, COUNT(DISTINCT subject_id) AS cnt
+  FROM Teacher
+  GROUP BY teacher_id;
+  ```
+
+---
+
+## 4. Why `SUM()` Cannot Be Used in `WHERE`
+
+* Mistake:
+  ```sql
+  WHERE SUM(unit) >= 100
+  ```
+
+* Fix: Use `HAVING` for aggregate filters:
+  ```sql
+  HAVING SUM(unit) >= 100
+  ```
+
+---
+
+## 5. Optimize for Runtime – February Sales
+
+* Avoid:
+  ```sql
+  WHERE MONTH(order_date) = 2 AND YEAR(order_date) = 2020
+  ```
+
+* Use:
+  ```sql
+  WHERE order_date BETWEEN '2020-02-01' AND '2020-02-29'
+  ```
+
+---
+
+## 6. GROUP_CONCAT to Join Rows into CSV
+
+* Goal: Get `Basketball,Headphone,T-shirt` from rows.
+
+* Query:
+  ```sql
+  SELECT GROUP_CONCAT(product_name ORDER BY product_name SEPARATOR ',') AS products
+  FROM Products;
+  ```
+
+---
+
+## 7. LeetCode 1484 – Group Sold Products By Date
+
+* Goal: For each date, show number of unique products and a comma-separated list.
+
+* Query:
+  ```sql
+  SELECT 
+    sell_date,
+    COUNT(DISTINCT product) AS num_sold,
+    GROUP_CONCAT(DISTINCT product ORDER BY product SEPARATOR ',') AS products
+  FROM Activities
+  GROUP BY sell_date
+  ORDER BY sell_date;
+  ```
+
+---
+
+## 8. Extract Month from a Date
+
+* Query:
+  ```sql
+  SELECT MONTH(order_date) FROM Orders;
+  ```
+
+---
+
+## 9. Find Second Highest Salary
+
+* Return NULL if it doesn't exist.
+
+* Query:
+  ```sql
+  SELECT (
+    SELECT DISTINCT salary
+    FROM Employee
+    ORDER BY salary DESC
+    LIMIT 1 OFFSET 1
+  ) AS SecondHighestSalary;
+  ```
+  
+
 # SQL Practice Notes – July 15
 
 ## 1. What is an ENUM in SQL?
@@ -134,5 +272,6 @@ FROM (
 WHERE temperature > prev_temp;
 ```
 
-```
+
+
 
