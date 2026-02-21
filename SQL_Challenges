@@ -1,0 +1,6 @@
+🟦 Challenge 1: Average Salary Miscalculation Error
+Samantha was calculating the average monthly salary for all employees in the EMPLOYEES table, but later discovered that her keyboard's '0' key was broken. As a result, every salary she used in her calculation had all the zeroes removed. Your task is to help her find the amount of error in her calculation. Compute the actual average salary, compute the average salary with all zeroes removed from each value (e.g., 50400 becomes 54), and then calculate the absolute difference between the two averages. Finally, round that difference up to the next integer and return it.
+
+🟦 Challenge 2: Maximum Total Earnings and Count
+Each employee in the EMPLOYEE table has a monthly salary and the number of months they’ve worked at the company. Their total earnings are defined as salary × months. You are asked to write a query that returns two values: (1) the maximum total earnings achieved by any employee in the table, and (2) the number of employees who have that maximum total earnings. Your result should be displayed as two space-separated integers in a single row.
+
