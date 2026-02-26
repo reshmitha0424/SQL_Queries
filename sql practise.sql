@@ -1,5 +1,8 @@
 use sakila;
 show tables;
+
+-- ---------- DAY 1 --------------
+
 -- 1. Write a query to display all columns from the film table.
 select * from film;
 
@@ -81,4 +84,60 @@ having count(*) = (
                                                 ) as sub
 					);
 
-                    
+				
+-- ---------- DAY 2 --------------
+-- 13. Find the top 5 customers who have made the highest total payment 
+select customer_id, first_name, last_name, sum(amount) as total_amt from customer
+join payment
+using (customer_id)
+group by customer_id, first_name, last_name
+order by sum(amount) desc
+limit 5;
+
+-- 14. Find customers who have made more than 30 payments.
+select customer_id, first_name, last_name, count(payment_id) as num_payments from customer
+join payment
+using (customer_id)
+group by customer_id, first_name, last_name
+having count(payment_id) > 30
+order by num_payments;
+
+-- 15. Find the film that have been rented the most times.
+select film_id, title, count(rental_id) as times_rented from film
+join inventory
+using (film_id)
+join rental
+using (inventory_id)
+group by film_id, title
+order by count(rental_id) desc
+limit 1;
+
+-- 16. Find the film(s) that have been rented the most times (can be more than 1 film) - so use subquery
+-- step 1: count rentals per film
+select film_id, title, count(rental_id) as times_rented 
+from film
+join inventory using (film_id)
+join rental using (inventory_id)
+group by film_id, title;
+-- step 2: from that, find the max times_rented
+select max(times_rented) from (
+								select count(rental_id) as times_rented 
+								from film
+								join inventory using (film_id)
+								join rental using (inventory_id)
+								group by film_id, title) as sub;
+--  step 3: modify step 1 to consider only the ones with max(times_rented)
+select film_id, title, count(rental_id) as times_rented 
+from film
+join inventory using (film_id)
+join rental using (inventory_id)
+group by film_id, title
+having count(rental_id) = (
+							select max(times_rented) from (
+															select count(rental_id) as times_rented 
+															from film
+															join inventory using (film_id)
+															join rental using (inventory_id)
+															group by film_id, title) as sub
+                                                            );
+                                
