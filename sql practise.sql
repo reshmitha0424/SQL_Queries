@@ -140,4 +140,36 @@ having count(rental_id) = (
 															join rental using (inventory_id)
 															group by film_id, title) as sub
                                                             );
-                                
+
+-- 17. Find the top 3 categories that generated the highest total revenue.
+select name as category_name, sum(amount) as total_revenue from film
+join inventory using (film_id)
+join rental using (inventory_id)
+join payment using (rental_id)
+join film_category using (film_id)
+join category using (category_id)
+group by category_name
+order by total_revenue desc
+limit 3;
+
+-- 18. Find the month-wise total revenue.
+select year(payment_date) as year, month(payment_date) as month, sum(amount) as total_revenue from payment
+group by year, month
+order by year, month;
+
+-- 19. Find the customer who generated the highest revenue in a single month.
+select customer_id, first_name, last_name, year(payment_date), month(payment_date), sum(amount) from customer
+join payment using (customer_id)
+group by customer_id, first_name, last_name, year(payment_date), month(payment_date)
+order by sum(amount) desc
+limit 1;
+
+-- 20. Find the running total revenue over time (cumulative revenue).
+select payment_date, amount, sum(amount) over(order by payment_date) as running_totals_overall from payment
+order by payment_date;
+
+-- 21.Find the running total revenue per customer (cumulative spend for each customer over time).
+select customer_id, payment_date, amount,
+sum(amount) over(partition by customer_id order by payment_date) as running_totals_per_cust from payment
+order by customer_id, payment_date;
+
