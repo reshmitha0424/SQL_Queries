@@ -173,3 +173,5 @@ select customer_id, payment_date, amount,
 sum(amount) over(partition by customer_id order by payment_date) as running_totals_per_cust from payment
 order by customer_id, payment_date;
 
+
+
