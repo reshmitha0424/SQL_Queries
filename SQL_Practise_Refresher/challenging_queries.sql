@@ -119,4 +119,13 @@ group by category_id;
 select category_id, avg(rental_rate) as avg_rental_rate from film
 join film_category using (film_id)
 group by category_id
-having avg_rental_rate > (select avg(rental_rate) as avg_rental_rate from film);                                   
+having avg_rental_rate > (select avg(rental_rate) as avg_rental_rate from film);    
+-- ----------------------------------------------------------------------------------------------------------------------
+-- For each customer, show their name and how many distinct films they've rented (not total rentals — distinct films), using a correlated subquery in SELECT.                                
+select customer_id, first_name,last_name, (select count(distinct film_id) from rental
+											join inventory using (inventory_id)
+                                            where rental.customer_id=customer.customer_id
+											) as distinct_film_count 
+from customer;                                            
+-- The subquery is already correlated — it's filtered down to just one customer's rentals via WHERE rental.customer_id = customer.customer_id. 
+-- Since it's only looking at one customer's rows at a time, grouping by customer_id inside there doesn't do anything useful                               

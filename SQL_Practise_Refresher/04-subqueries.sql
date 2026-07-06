@@ -119,10 +119,30 @@ join film_category using (film_id)
 group by category_id
 having avg_rental_rate > (select avg(rental_rate) as avg_rental_rate from film);
 
--- Find customers whose total number of rentals is higher than customer_id 1's total number of rentals (subquery to first find customer 1's rental count, then compare others against it).
--- Find all films that are NOT in the category 'Action' (subquery with NOT IN, using the film_category/category chain).
+-- 17. Find customers whose total number of rentals is higher than customer_id 1's total number of rentals (subquery to first find customer 1's rental count, then compare others against it).
+select customer_id, count(rental_id) as total_rentals from rental
+group by customer_id
+having total_rentals> (select count(*) as count1 from rental
+						where customer_id = 1);
+-- 18. Find all films that are NOT in the category 'Action' (subquery with NOT IN, using the film_category/category chain).
+select * from film
+join film_category using (film_id)
+where category_id not in (select category_id from category 
+                            where category.name = 'Action');
+                            
+-- 19. Find the third most expensive film by rental rate (extend the "second most expensive" pattern from Q9 one level deeper).
+select title as film_name, rental_rate from film
+where rental_rate = (
+					select max(rental_rate) from film
+					where rental_rate< (select max(rental_rate) from film
+											where rental_rate <(select max(rental_rate) from film)));
+                                          
 
--- Stretch:
-
--- Find the third most expensive film by rental rate (extend the "second most expensive" pattern from Day 4 Q9 one level deeper).
--- For each customer, show their name and how many distinct films they've rented (not total rentals — distinct films), using a correlated subquery in SELECT.                                
+-- 20. For each customer, show their name and how many distinct films they've rented (not total rentals — distinct films), using a correlated subquery in SELECT.                                
+select customer_id, first_name,last_name, (select count(distinct film_id) from rental
+											join inventory using (inventory_id)
+                                            where rental.customer_id=customer.customer_id
+											) as distinct_film_count 
+from customer;                                            
+-- The subquery is already correlated — it's filtered down to just one customer's rentals via WHERE rental.customer_id = customer.customer_id. 
+-- Since it's only looking at one customer's rows at a time, grouping by customer_id inside there doesn't do anything useful
