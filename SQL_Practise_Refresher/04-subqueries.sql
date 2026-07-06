@@ -79,4 +79,50 @@ SELECT customer_id, COUNT(*) AS rental_count
 FROM rental
 GROUP BY customer_id
 HAVING rental_count > (select avg(rental_count) from (select customer_id, count(rental_id) as rental_count from rental
-								group by customer_id) as customer_rentals);                                
+								group by customer_id) as customer_rentals);   
+                                
+-- 11. Find all films whose length is greater than the average length of all films
+select * from film
+where length > (select avg(length) as avg_length from film);
+				
+-- 12. Find all customers who have rented from the store with store_id = 1 (subquery: first find which customer_ids show up in rentals tied to store 1, via inventory → store).
+select * from customer 
+where customer_id in (select customer_id from rental
+					where inventory_id in (select inventory_id from inventory
+											where store_id=1));                      
+
+-- 13. Find the film with the minimum rental rate 
+select * from film
+where rental_rate = (select min(rental_rate) from film);
+
+-- 14. Find all actors who appeared in the film 'ACADEMY DINOSAUR' (subquery to first find the film_id, then use it to find actor_ids in film_actor, then get their names from actor).
+select * from actor
+where actor_id in (select actor_id from film_actor
+				where film_id = (select film_id from film
+								where title = 'ACADEMY DINOSAUR'));            
+                
+-- 15. For each film, show its title and the number of times it's been rented — using a correlated subquery in SELECT (hint: similar structure Q6, but counting rentals via inventory instead of finding a max date).
+select film_id, title, (select count(*) from rental
+						join inventory using (inventory_id)
+                        where inventory.film_id = film.film_id) as times_rented
+from film;
+-- 16. Find all categories whose average film rental_rate is higher than the overall average rental_rate across all films (correlated-style: first get overall average as one subquery, then compare each category's own average against it — think about whether this needs GROUP BY + HAVING, or a correlated subquery, or both).
+-- (1) the overall average rental_rate across all films:
+select avg(rental_rate) as avg_rental_rate from film;
+-- (2) Each category's own average rental_rate:
+select category_id, avg(rental_rate) as avg_rental_rate from film
+join film_category using (film_id)
+group by category_id;
+-- (3) show only the categories where #2's value is bigger than #1's value.
+select category_id, avg(rental_rate) as avg_rental_rate from film
+join film_category using (film_id)
+group by category_id
+having avg_rental_rate > (select avg(rental_rate) as avg_rental_rate from film);
+
+-- Find customers whose total number of rentals is higher than customer_id 1's total number of rentals (subquery to first find customer 1's rental count, then compare others against it).
+-- Find all films that are NOT in the category 'Action' (subquery with NOT IN, using the film_category/category chain).
+
+-- Stretch:
+
+-- Find the third most expensive film by rental rate (extend the "second most expensive" pattern from Day 4 Q9 one level deeper).
+-- For each customer, show their name and how many distinct films they've rented (not total rentals — distinct films), using a correlated subquery in SELECT.                                

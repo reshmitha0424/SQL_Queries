@@ -107,5 +107,16 @@ FROM rental
 GROUP BY customer_id
 HAVING rental_count > (select avg(rental_count) from (select customer_id, count(rental_id) as rental_count from rental
 								group by customer_id) as customer_rentals);                                
-
-                                   
+-- ----------------------------------------------------------------------------------------------------------------------
+-- Find all categories whose average film rental_rate is higher than the overall average rental_rate across all films (correlated-style: first get overall average as one subquery, then compare each category's own average against it — think about whether this needs GROUP BY + HAVING, or a correlated subquery, or both).
+-- (1) the overall average rental_rate across all films:
+select avg(rental_rate) as avg_rental_rate from film;
+-- (2) Each category's own average rental_rate:
+select category_id, avg(rental_rate) as avg_rental_rate from film
+join film_category using (film_id)
+group by category_id;
+-- (3) show only the categories where #2's value is bigger than #1's value.
+select category_id, avg(rental_rate) as avg_rental_rate from film
+join film_category using (film_id)
+group by category_id
+having avg_rental_rate > (select avg(rental_rate) as avg_rental_rate from film);                                   
