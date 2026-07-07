@@ -1,5 +1,118 @@
 use sakila;
 
+-- -----------------------------------------Model 1: Scalar subquery-----------------------------------------------------
+-- Model 1: Scalar subquery in WHERE (subquery returns ONE single value, compared with =, >, <, etc.)
+-- Use when: you need to compare a row against one fixed number (an overall max/min/avg).
+
+-- 1. Find all customers whose customer_id is greater than the customer_id of anyone named 'MARY SMITH'.
+select * from customer
+where customer_id > (select customer_id from customer
+					where concat(first_name, ' ', last_name) = 'MARY SMITH');
+                    
+-- 2. Find all films whose replacement_cost is less than the average replacement_cost of all films.
+select * from film
+where replacement_cost< (select avg(replacement_cost) from film);
+-- -------------------------------------------Model 2: List subquery----------------------------------------------------
+-- Model 2: List subquery with IN / NOT IN (subquery returns a LIST of values)
+-- Use when: you need to check if a column's value exists (or doesn't) in a set of values from another table.
+
+-- 1. Find all films that ARE in inventory at store 2 (subquery returns a list of film_ids present in store 2's inventory).
+select * from film
+where film_id in (select film_id from inventory
+						where store_id=2);
+
+-- 2. Find all customers who have NOT rented anything from store 2.
+select * from customer
+where customer_id not in (select customer_id from rental
+						where inventory_id in (select inventory_id from inventory
+												where store_id = 2));
+                                                
+select * from customer
+where customer_id not in (select customer_id from rental
+						join inventory using (inventory_id)
+                        where store_id =2);
+                        
+-- Both give the same correct result, but there's a meaningful difference: 
+-- your first version (nested subquery with IN inside IN) is generally the better/safer pattern for NOT IN specifically.
+-- Here's why: NOT IN combined with a subquery that uses a JOIN can be risky if any row in that joined result has a NULL in the column you're checking (customer_id in this case). 
+-- If even one NULL sneaks into the subquery's result list, NOT IN will return zero rows for everything — a well-known SQL gotcha. 
+-- This is because comparing anything to NULL gives UNKNOWN, not TRUE or FALSE, and NOT IN needs every comparison to definitively resolve to FALSE to include a row.
+-- ------------------------------------------------------Model 3: Nested subqueries-------------------------------------
+-- Model 3: Nested subqueries (subquery inside a subquery — chain of lookups)
+-- Use when: the value you need isn't directly available — you have to look it up through 2+ steps first.
+
+-- 1. Find all films in the same category as 'SPLASH GUMP' (you'll need to find its category_id first, in a step before that).
+select * from film
+where film_id in (select film_id from film_category
+				where category_id = (select category_id from film_category
+									where film_id = (select film_id from film
+													where title = 'SPLASH GUMP')));
+                                                    
+-- 2. Find the address (city) of the customer named 'MARY SMITH' — chain through customer → address → city.
+select * from city
+where city_id = (select city_id from address
+				where address_id = (select address_id from customer
+									where concat(first_name, ' ', last_name)='MARY SMITH'));                                                       
+	
+-- -------------------------------------Model 4: Derived table (subquery in FROM)--------------------------------------
+-- Model 4: Derived table (subquery in FROM)
+-- Use when: you first need to compute a summary (via GROUP BY) and then filter, sort, or further aggregate that summary as if it were a table.
+
+-- 1. Find the category with the highest total revenue (you'll first need a derived table summing revenue per category, then find the max from that).
+
+select category_id, total_rev as max_total_rev from (select category_id, sum(amount) as total_rev from payment 
+												join rental using (rental_id)
+												join inventory using (inventory_id)
+												join film using (film_id)
+												join film_category using (film_id)
+												group by category_id) as total_revenue
+order by total_rev desc
+limit 1;
+
+
+select category_id, total_rev from (
+									select category_id, sum(amount) as total_rev from payment 
+									join rental using (rental_id)
+									join inventory using (inventory_id)
+									join film using (film_id)
+									join film_category using (film_id)
+									group by category_id
+									) as total_revenue
+									where total_rev = (select max(total_rev) from (
+																					select category_id, sum(amount) as total_rev from payment 
+																					join rental using (rental_id)
+																					join inventory using (inventory_id)
+																					join film using (film_id)
+																					join film_category using (film_id)
+																					group by category_id
+																					) as total_revenue2);                                                
+									
+
+
+-- 2. Find the average of the total number of rentals per customer (group first, then average the grouped result).
+select avg(sum_rentals) as avg_sum_rentals from (select count(*) as sum_rentals from rental
+												group by customer_id) as total_rentals;
+
+-- ----------------------------------------------------------------------------------------------------------------------
+-- Model 5: Correlated subquery in SELECT (subquery re-runs per outer row, referencing the outer row's value)
+-- Use when: you want an extra column showing something calculated "per row" — like a count, sum, or max that's specific to that one row.
+
+-- For each category, show the category name and the number of films in it (correlated, not GROUP BY this time — force yourself to use the correlated pattern).
+-- For each customer, show their name and the total amount they've paid (correlated version, not a join+GROUP BY).
+
+
+-- Model 6: Correlated subquery in WHERE / HAVING (comparing each row against a per-row-recalculated benchmark)
+-- Use when: the "benchmark" you're comparing against is different for every row — like "this category's own average" rather than one fixed number.
+
+-- Find all customers whose number of rentals is above the average number of rentals for customers in their own store (correlated on store_id — the average needs to be recalculated per store).
+
+
+-- Model 7: EXISTS / NOT EXISTS (a new pattern today — checks if any matching row exists, without caring about the actual values)
+-- Use when: you only care whether a related row exists at all, not what its value is. Often more efficient than IN/NOT IN for this exact purpose.
+
+-- Find all customers who have made at least one payment (using EXISTS instead of a join).
+-- Find all films that have never been rented (rewrite Day 4 Q5's answer using NOT EXISTS instead of the LEFT JOIN approach).				
+-- ----------------------------------------------------------------------------------------------------------------------
 -- 1. Find all films whose rental rate is higher than the average rental rate (use a subquery in WHERE).
 select * from film
 where rental_rate > (select avg(rental_rate) from film);
@@ -146,3 +259,4 @@ select customer_id, first_name,last_name, (select count(distinct film_id) from r
 from customer;                                            
 -- The subquery is already correlated — it's filtered down to just one customer's rentals via WHERE rental.customer_id = customer.customer_id. 
 -- Since it's only looking at one customer's rows at a time, grouping by customer_id inside there doesn't do anything useful
+

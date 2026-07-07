@@ -128,4 +128,22 @@ select customer_id, first_name,last_name, (select count(distinct film_id) from r
 											) as distinct_film_count 
 from customer;                                            
 -- The subquery is already correlated — it's filtered down to just one customer's rentals via WHERE rental.customer_id = customer.customer_id. 
--- Since it's only looking at one customer's rows at a time, grouping by customer_id inside there doesn't do anything useful                               
+-- Since it's only looking at one customer's rows at a time, grouping by customer_id inside there doesn't do anything useful  
+-- ----------------------------------------------------------------------------------------------------------------------
+-- Find all customers who have NOT rented anything from store 2.
+select * from customer
+where customer_id not in (select customer_id from rental
+						where inventory_id in (select inventory_id from inventory
+												where store_id = 2));
+                                                
+select * from customer
+where customer_id not in (select customer_id from rental
+						join inventory using (inventory_id)
+                        where store_id =2);
+                        
+-- Both give the same correct result, but there's a meaningful difference: 
+-- your first version (nested subquery with IN inside IN) is generally the better/safer pattern for NOT IN specifically.
+-- Here's why: NOT IN combined with a subquery that uses a JOIN can be risky if any row in that joined result has a NULL in the column you're checking (customer_id in this case). 
+-- If even one NULL sneaks into the subquery's result list, NOT IN will return zero rows for everything — a well-known SQL gotcha. 
+-- This is because comparing anything to NULL gives UNKNOWN, not TRUE or FALSE, and NOT IN needs every comparison to definitively resolve to FALSE to include a row.
+                             
